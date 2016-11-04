@@ -41,7 +41,7 @@ This class' various fields are used to disambiguate the inventors.
 The JSON structure of ```InventorMention``` is:
 
 
-```json
+```
 {
     "assignees": [
         {
@@ -53,12 +53,13 @@ The JSON structure of ```InventorMention``` is:
             "uuid": String
         },
         {
-                    "assigneeType": String,
-                    "organization": String,
-                    "patentID": String,
-                    "rawLocationID": String,
-                    "sequence": String,
-                    "uuid": String
+            "assigneeType": String,
+            "patentID": String,
+            "rawLocationID": String,
+            "sequence": String,
+            "nameFirst": String,
+            "nameLast": String,
+            "uuid": String
         }
     ],
     "coInventors": [
@@ -190,14 +191,15 @@ The JSON structure of ```InventorMention``` is:
     "self": {
         "inventorID":  String,
         "location": {
-            "_id":  String,
             "city":  String,
+            "state": String,
             "country":  String,
             "locationID":  String,
         },
         "nameFirst":  String,
         "nameLast":  String,
-        "nameMiddles": List[String]
+        "nameMiddles": List[String],
+        "nameSuffixes": List[String],
         "patentID":  String,
         "rawLocationID":  String,
         "sequence":  String,
@@ -205,21 +207,18 @@ The JSON structure of ```InventorMention``` is:
     },
     "uspc": [
         {
-            "_id":  String,
             "mainClassID":  String,
             "patentID":  String,
             "subclassID":  String,
             "uuid":  String,
         },
         {
-            "_id":  String,
             "mainClassID":  String,
             "patentID":  String,
             "subclassID":  String,
             "uuid":  String,
         },
         {
-            "_id":  String,
             "mainClassID":  String,
             "patentID":  String,
             "subclassID":  String,
@@ -228,3 +227,78 @@ The JSON structure of ```InventorMention``` is:
     ],
     "uuid":  String,
 }
+```
+
+The features used for disambiguation are (see: [source](../coreference/HierarchicalInventorCoref.scala)):
+
+```json
+{
+    "uuid":  String, 
+    "assignees": [
+        {
+            "organization": String,
+        },
+        {
+            "nameFirst": String,
+            "nameLast": String
+        }
+    ],
+    "coInventors": [
+        {
+            "nameFirst": String,
+            "nameLast": String,
+        },
+    ],
+    "cpc": [
+        {
+            "sectionID": String,
+            "subsectionID": String,
+        },
+    ],
+    "ipcr": [
+        {
+            "classificationLevel":  String,
+            "ipcClass":  String,
+            "section":  String,
+        },
+    ],
+    "lawyers": [
+        {
+            "nameFirst":  String,
+            "nameLast":  String,
+        }
+    ],
+    "nber": [
+        {
+            "categoryID":  String,
+            "subcategoryID":  String,
+        }
+    ],
+    "patent": {
+        "title":  String,
+    },
+    "self": {
+        "inventorID":  String,
+        "location": {
+            "city":  String,
+            "state": String,
+            "country":  String,
+        },
+        "nameFirst":  String,
+        "nameLast":  String,
+        "nameMiddles": List[String],
+        "nameSuffixes": List[String],
+        "patentID":  String,
+        "sequence":  String,
+        "uuid":  String,
+    },
+    "uspc": [
+        {
+            "mainClassID":  String,
+            "subclassID":  String,
+        },
+    ],
+    
+}
+```
+Note that the ```uuid``` at the top level is the unique id for the ```InventorMention```. This is the value that appears in the coref-tasks (blocking) files. This field is PatentNo-InventorSequence where PatentNo is the id number of the patent and InventorSequence is the order in which the inventor is listed on the patent. 
