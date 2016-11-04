@@ -176,9 +176,9 @@ trait LoadMentionsFromMongo {
  */
 abstract class StandardParallelCoreference(override val allWork: Iterable[CorefTask],
                                            override val datastore: Datastore[String, InventorMention],
-                                           outputDir: File) extends ParallelCoreference with LoadMentionsFromMongo {
+                                           outputDir: File,codec: String,convertOutputToOneBasedIds: Boolean) extends ParallelCoreference with LoadMentionsFromMongo {
 
-  override def writer: CorefOutputWriter[BasicCorefOutputRecord] = new TextCorefOutputWriter(outputDir)
+  override def writer: CorefOutputWriter[BasicCorefOutputRecord] = new TextCorefOutputWriter(outputDir,codec,convertToOneBased = convertOutputToOneBasedIds)
 
   override def finalizeOutput(): Unit = writer.collectResults(outputDir,new File(outputDir,"all-results.txt"))
 
@@ -198,7 +198,7 @@ class SingleCanopyParallelHierarchicalCoref(override val allWork: Iterable[Coref
                                             override val datastore: Datastore[String, InventorMention],
                                             opts: InventorModelOptions,
                                             keystore: Keystore,
-                                            outputDir: File) extends StandardParallelCoreference(allWork,datastore,outputDir) {
+                                            outputDir: File, codec: String = "UTF-8",convertOutputToOneBasedIds: Boolean=true) extends StandardParallelCoreference(allWork,datastore,outputDir,codec,convertOutputToOneBasedIds) {
   override def algorithmFromTask(task: CorefTaskWithMentions): CoreferenceAlgorithm[InventorMention] = new SingleCanopyHierarchicalInventorCorefRunner(opts,keystore,task.mentions)
 }
 
@@ -214,7 +214,7 @@ class MultiCanopyParallelHierarchicalCoref(override val allWork: Iterable[CorefT
                                             override val datastore: Datastore[String, InventorMention],
                                             opts: InventorModelOptions,
                                             keystore: Keystore,
-                                            outputDir: File) extends StandardParallelCoreference(allWork,datastore,outputDir) {
+                                            outputDir: File, codec: String = "UTF-8",convertOutputToOneBasedIds: Boolean=true) extends StandardParallelCoreference(allWork,datastore,outputDir,codec,convertOutputToOneBasedIds) {
   override def algorithmFromTask(task: CorefTaskWithMentions): CoreferenceAlgorithm[InventorMention] = new MultiCanopyHierarchicalInventorCorefRunner(opts,keystore,task.mentions)
 }
 
@@ -260,18 +260,24 @@ object BasicCorefOutputRecord {
 
 object CorefOutputWriterHelper {
 
-  def sortedNormalizedResults(results: Iterable[BasicCorefOutputRecord]): Iterable[BasicCorefOutputRecord] = {
+  def sortedNormalizedResults(results: Iterable[BasicCorefOutputRecord], convertToOneBased: Boolean = true): Iterable[BasicCorefOutputRecord] = {
+
+    val getMentionId = if (convertToOneBased)
+      (r: BasicCorefOutputRecord) => r.oneBasedMentionId
+    else
+      (r: BasicCorefOutputRecord) => r.mentionId
+
     // 1. Create the entity id map
     // The output format is to have the disambiguated ID be the mention
     // id of the first record in the cluster
-    val sortedResults = results.toSeq.sortBy(_.oneBasedMentionId)
+    val sortedResults = results.toSeq.sortBy(f => getMentionId(f))
     val entityIdMap = new util.HashMap[String,String](100000).asScala
     sortedResults.foreach{
       case r: BasicCorefOutputRecord =>
         if (!entityIdMap.contains(r.rawDisambiguatedId)) {
-          entityIdMap.put(r.rawDisambiguatedId,r.oneBasedMentionId)
-        } else if (entityIdMap(r.rawDisambiguatedId) > r.oneBasedMentionId) {
-          entityIdMap.put(r.rawDisambiguatedId,r.oneBasedMentionId)
+          entityIdMap.put(r.rawDisambiguatedId,getMentionId(r))
+        } else if (entityIdMap(r.rawDisambiguatedId) > getMentionId(r)) {
+          entityIdMap.put(r.rawDisambiguatedId,getMentionId(r))
         }
     }
     // 2.  Sort the inventor ids
@@ -287,7 +293,7 @@ object CorefOutputWriterHelper {
  * @param outputDirectory - the output directory
  * @param codec - the encoding of the files (default UTF8)
  */
-class TextCorefOutputWriter(outputDirectory: File, codec: String = "UTF-8") extends CorefOutputWriter[BasicCorefOutputRecord] {
+class TextCorefOutputWriter(outputDirectory: File, codec: String = "UTF-8",convertToOneBased: Boolean = true) extends CorefOutputWriter[BasicCorefOutputRecord] {
 
   val validFilePathRegex = "^[1234567890qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM\\._]+$"
 
@@ -307,7 +313,7 @@ class TextCorefOutputWriter(outputDirectory: File, codec: String = "UTF-8") exte
   }
 
   override def collectResults(outputDir: File, collectedFile: File): Unit = {
-    val results = CorefOutputWriterHelper.sortedNormalizedResults(outputDir.list().filter(f => new File(outputDir,f).isDirectory).flatMap(f => loadAllResults(new File(outputDir,f))))
+    val results = CorefOutputWriterHelper.sortedNormalizedResults(outputDir.list().filter(f => new File(outputDir,f).isDirectory).flatMap(f => loadAllResults(new File(outputDir,f))),convertToOneBased)
 
     // main output in standard format
     val pw = new PrintWriter(collectedFile,codec)

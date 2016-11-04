@@ -34,6 +34,7 @@ trait RunParallelOpts extends MongoDBOpts with InventorModelOptions with InMemor
   val codec = new CmdOption[String]("codec", "UTF-8", "STRING", "The encoding to use.")
   val outputDir = new CmdOption[String]("output-dir", "Where to write the output", true)
   val numThreads = new CmdOption[Int]("num-threads", 20, "INT", "Number of threads to use")
+  val convertToOneBasedOutputIds = new CmdOption[Boolean]("convert-to-one-based-output-ids",true,"BOOLEAN", "whether to convert the output inventor ids to a one based format")
 }
 
 trait  RunParallelInMemoryOpts extends RunParallelOpts {
@@ -57,7 +58,7 @@ object RunParallelSingleCanopyCoreference {
     val keystore = InMemoryKeystore.fromFile(new File(opts.keystorePath.value),opts.keystoreDim.value,opts.keystoreDelim.value,opts.codec.value)
 
     new File(opts.outputDir.value).mkdirs()
-    val parCoref = new SingleCanopyParallelHierarchicalCoref(allWork,ds,opts,keystore,new File(opts.outputDir.value))
+    val parCoref = new SingleCanopyParallelHierarchicalCoref(allWork,ds,opts,keystore,new File(opts.outputDir.value),opts.codec.value,opts.convertToOneBasedOutputIds.value)
 
     parCoref.runInParallel(opts.numThreads.value)
     
@@ -100,7 +101,7 @@ object RunParallelMultiCanopyCoreference {
     new File(opts.outputDir.value).mkdirs()
     
     // Initialize the coreference algorithm
-    val parCoref = new MultiCanopyParallelHierarchicalCoref(allWork,ds,opts,keystore,new File(opts.outputDir.value))
+    val parCoref = new MultiCanopyParallelHierarchicalCoref(allWork,ds,opts,keystore,new File(opts.outputDir.value),opts.codec.value,opts.convertToOneBasedOutputIds.value)
 
     // Run the algorithm on all the tasks
     parCoref.runInParallel(opts.numThreads.value)
@@ -146,7 +147,7 @@ object RunParallelMultiCanopyCoreferenceInMemory {
     new File(opts.outputDir.value).mkdirs()
 
     // Initialize the coreference algorithm
-    val parCoref = new MultiCanopyParallelHierarchicalCoref(allWork,ds,opts,keystore,new File(opts.outputDir.value))
+    val parCoref = new MultiCanopyParallelHierarchicalCoref(allWork,ds,opts,keystore,new File(opts.outputDir.value),opts.codec.value,opts.convertToOneBasedOutputIds.value)
 
     // Run the algorithm on all the tasks
     parCoref.runInParallel(opts.numThreads.value)
