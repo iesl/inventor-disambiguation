@@ -229,9 +229,9 @@ The JSON structure of ```InventorMention``` is:
 }
 ```
 
-The features used for disambiguation are (see: [source](../coreference/HierarchicalInventorCoref.scala)):
+The features used for disambiguation are (see: [source](../coreference/HierarchicalInventorCoref.scala#L125-L206)):
 
-```json
+```
 {
     "uuid":  String, 
     "assignees": [
