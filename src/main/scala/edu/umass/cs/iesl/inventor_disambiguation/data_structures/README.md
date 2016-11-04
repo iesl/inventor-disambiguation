@@ -229,6 +229,8 @@ The JSON structure of ```InventorMention``` is:
 }
 ```
 
+## Disambiguation Features ##
+
 The features used for disambiguation are (see: [source](../coreference/HierarchicalInventorCoref.scala#L125-L206)):
 
 ```
