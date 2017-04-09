@@ -205,8 +205,38 @@ abstract class HierarchicalInventorCorefRunner(opts: InventorModelOptions, keyst
     m
   }
   
-  def addEntityLabels() =
+  def addEntityLabels() = {
+    val numMentions = mentions.size
+    val numMentionsIndex = mentionIndex.size
+    val numVarMentions = inventorVarMentions.size
+    if (numMentions != numMentionsIndex) {
+      println(s"[WARNING] Number of input mentions $numMentions does not " +
+        s"match number of unique mention ids $numMentionsIndex. There could be" +
+        s"mentions with duplicate ids. Duplicates: " +
+        s"${mentions.map(_.uuid.value).counts.filter(_._2 > 1).mkString(" ")}")
+    }
+    if (numVarMentions != numMentionsIndex) {
+      println(s"[WARNING] Number of variable mentions $numVarMentions does not " +
+        s"match number of unique mention ids $numMentionsIndex. There could be" +
+        s"mentions with duplicate ids.")
+    }
+    if (numVarMentions != numMentions) {
+      println(s"[WARNING] Number of variable mentions $numVarMentions does not " +
+        s"match number of input mention ids $numMentions.")
+    }
+    // Apply the entity ids for the mentions that were actually resolved.
     inventorVarMentions.foreach(m => mentionIndex(m.uniqueId).entityId.set(m.root.uniqueId))
+
+    // Handle duplicates
+    val duplicateIds = mentions.map(_.uuid.value).counts.filter(_._2 > 1).keySet
+    if (duplicateIds.nonEmpty) {
+      mentions.filter(m => duplicateIds.contains(m.uuid.value) && !m.entityId.isDefined).foreach{
+        m =>
+          m.entityId.set(mentionIndex(m.uuid.value).entityId.value)
+      }
+    }
+  }
+
 
 }
 
